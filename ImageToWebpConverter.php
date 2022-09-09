@@ -11,7 +11,7 @@ class ImageToWebpConverter
      */
     private static function imageDir(): string
     {
-        $newImageDir = $_SERVER['DOCUMENT_ROOT'] . '/upload/';
+        $newImageDir = ($_SERVER['DOCUMENT_ROOT']) ? $_SERVER['DOCUMENT_ROOT'] . '/upload/' : 'upload/';
         if (!is_dir($newImageDir)) {
             mkdir($newImageDir);
         }
@@ -27,7 +27,7 @@ class ImageToWebpConverter
      * Функция создание webp картинки
      * @throws Exception
      */
-    private static function createWebp(string $oldImagePath, string $newImagePath ) :void
+    private static function createWebp(string $oldImagePath, string $newImagePath): void
     {
         $info = getimagesize($oldImagePath);
         $mime = $info['mime'] ?? '';
@@ -54,20 +54,25 @@ class ImageToWebpConverter
      * @return string
      * @throws Exception - ошибка формата входного файла
      */
-    public function gen(string $oldImagePath, bool $webpBrowserAccepted = false) :string
+    public function gen(string $oldImagePath, bool $webpBrowserAccepted = false): string
     {
         /**
          * 1 проверка на доступность webp формата - прямое указание при генерации,
          * используется, когда данные нужно получить через ajax, т.к. в ajax полностью не передаётся $_SERVER пользователя
          */
-        if(!$webpBrowserAccepted)
-            $webpBrowserAccepted = ( str_contains($_SERVER['HTTP_ACCEPT'], 'image/webp') || str_contains($_SERVER['HTTP_USER_AGENT'], ' Chrome/'));
+        if (!$webpBrowserAccepted && !empty($_SERVER['HTTP_ACCEPT']) && !empty($_SERVER['HTTP_USER_AGENT'])) {
+            $webpBrowserAccepted = (strpos($_SERVER['HTTP_ACCEPT'], 'image/webp') !== false || strpos(
+                    $_SERVER['HTTP_USER_AGENT'],
+                    ' Chrome/'
+                ) !== false);
+        }
 
         /**
          * 2 проверка на доступность webp формата - данные из $_SERVER,
          */
-        if(!$webpBrowserAccepted)
+        if (!$webpBrowserAccepted) {
             return $oldImagePath;
+        }
 
         $imageName = basename($oldImagePath);
         $oldImagePath = $_SERVER['DOCUMENT_ROOT'] . $oldImagePath;
@@ -75,13 +80,14 @@ class ImageToWebpConverter
         $newImagePath = self::imageDir() . substr($oldImagePath, 0, strrpos($imageName, '.')) . '.webp';
 
         if (file_exists($oldImagePath) &&
-            (!is_file($newImagePath) || (filectime($oldImagePath) > filectime($newImagePath))))
-                self::createWebp($oldImagePath,$newImagePath);
+            (!is_file($newImagePath) || (filectime($oldImagePath) > filectime($newImagePath)))) {
+            self::createWebp($oldImagePath, $newImagePath);
+        }
 
         return $newImagePath;
     }
 
-    public function remove(string $oldImagePath) {
-
+    public function remove(string $oldImagePath)
+    {
     }
 }
